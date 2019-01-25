@@ -26,7 +26,7 @@ std::string trim_spaces_underscores(std::string s)
 std::string str_tolower(std::string s)
 {
     // https://en.cppreference.com/w/cpp/string/byte/tolower
-    s |= action::transform([](unsigned char c){ return std::tolower(c); }); 
+    s |= action::transform([](unsigned char c){ return std::tolower(c, std::locale()); }); 
     return s;
 }
 
