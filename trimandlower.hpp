@@ -3,7 +3,6 @@
 #include <string>
 #include <algorithm>
 #include <locale>
-#include <cctype>
 #include <range/v3/all.hpp>
 
 using namespace ranges;
