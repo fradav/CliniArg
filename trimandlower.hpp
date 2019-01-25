@@ -11,7 +11,7 @@ using namespace ranges;
 namespace detail
 {
 // Return true if space or "_"
-bool to_trim(unsigned char c)
+bool to_trim(char c)
 {
     return std::isspace(c, std::locale()) || (c == '_');
 }
@@ -26,7 +26,7 @@ std::string trim_spaces_underscores(std::string s)
 std::string str_tolower(std::string s)
 {
     // https://en.cppreference.com/w/cpp/string/byte/tolower
-    s |= action::transform([](char c){ return static_cast<char>(std::tolower(c, std::locale())); }); 
+    s |= action::transform(std::tolower); 
     return s;
 }
 
