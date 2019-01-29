@@ -12,12 +12,15 @@ ENDIF()
 
 find_package(range-v3 CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
-
-add_executable(trimandlower-test test/TestTrim.cpp)
-target_link_libraries(trimandlower-test Catch2::Catch2 range-v3)
-
 include(CTest)
 include(Catch)
-catch_discover_tests(trimandlower-test)
+
+file(GLOB test_files test/*.cpp)
+foreach(filename ${test_files})
+  get_filename_component(target ${filename} NAME_WE)
+  add_executable(${target} ${filename})
+  target_link_libraries(${target} Catch2::Catch2 range-v3)
+  catch_discover_tests(${target})
+endforeach(filename)
 
 

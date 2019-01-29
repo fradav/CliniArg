@@ -1,18 +1,20 @@
-#pragma once
+/**
+ * @file Settings.hpp
+ * @author François-David Collin <Francois-David.Collin@umontpellier.fr>
+ * @brief Global settings
+ * @version 0.1
+ * @date 2019-01-30
+ * 
+ * @copyright Copyright (c) 2019
+ * 
+ */
 #include <vector>
 #include <map>
-#include "Expected.hpp"
-
 
 enum ParamT {
     oneint,
     onevectflot,
     onestring
-};
-
-enum ParsingErrorsT {
-    keynotparsed,
-    valuenotparsed
 };
 
 std::map<std::string,ParamT> MapStringToParam {
@@ -25,10 +27,6 @@ struct Properties {
     size_t oneint;
     std::vector<float> onevectflot;
     std::string onestring;
-}
+};
 
-template<class ValueT>
-expected<ParsingErrorsT,ValueT> parse_onekeyvalue_pair(std::string key,std::string value) {
-    
-}
 

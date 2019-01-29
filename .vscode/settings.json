@@ -69,7 +69,8 @@
         "xstddef": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "xthread": "cpp"
     },
     "cmake.configureSettings": {
         "CMAKE_TOOLCHAIN_FILE" : "C:/Users/Franc/Documents/dev/C++/vcpkg/scripts/buildsystems/vcpkg.cmake"
