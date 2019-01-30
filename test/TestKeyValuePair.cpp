@@ -22,8 +22,10 @@ TEST_CASE( "Various single value parsing") {
 
 TEST_CASE( "Vector parsing") {
     REQUIRE( vector_parse<size_t>(std::string("1,2,3")).is_valid() ); 
+    REQUIRE( vector_parse<size_t>(std::string("1,2,3")).get() == std::vector<size_t>{1,2,3} ); 
     REQUIRE( !vector_parse<size_t>(std::string("1,-2,3")).is_valid() ); 
     REQUIRE( !vector_parse<size_t>(std::string("1,2,3.5")).is_valid() ); 
     REQUIRE( vector_parse<double>(std::string("1,-2,3.5")).is_valid() ); 
+    REQUIRE( vector_parse<double>(std::string("1,-2,3.5")).get() == std::vector<double>{1,-2,3.5} ); 
 }
 

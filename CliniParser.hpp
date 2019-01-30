@@ -148,9 +148,9 @@ using expected_vector = expected<std::vector<ValueT>, ParsingErrorsT>;
 /**
  * @brief Apply simple_parse on vector_parse
  * 
- * @tparam ValueT 
+ * @tparam ValueT the expected type to parse
  * @param value_str 
- * @return auto 
+ * @return expected_vector<ValueT>
  */
 template <class ValueT>
 auto vector_parse(std::string value_str)
@@ -176,3 +176,9 @@ auto vector_parse(std::string value_str)
 
     }
 }
+
+// template <class SettingsT>
+// auto parse_file_and_command_line(SettingsT&& s, std::string filename, const char **) {
+//     auto filename_parsed = 
+//         std:
+// }
