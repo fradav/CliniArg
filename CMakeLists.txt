@@ -20,7 +20,7 @@ foreach(filename ${test_files})
   get_filename_component(target ${filename} NAME_WE)
   add_executable(${target} ${filename})
   target_link_libraries(${target} Catch2::Catch2 range-v3)
-  catch_discover_tests(${target})
+  catch_discover_tests(${target} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
 endforeach(filename)
 
 
