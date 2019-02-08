@@ -96,47 +96,14 @@ auto split_keyvalue_pair(const std::regex_token_iterator<Bidir> t) {
     return split_keyvalue_pair(iterator_range(t->first,t->second));
 }
 
-/**
- * @brief Type testing for unsigned
- * 
- * @tparam T value
- */
-template <class T>
-using if_unsigned = std::enable_if_t<std::is_unsigned_v<T>>;
-
-//// Beginning of SFINAE/enable_if Trick
-// https://en.cppreference.com/w/cpp/language/sfinae
-// Those overloads are for running a dedicated code to 
-// detect the case of a negative parsed value in an unsigned type
-/**
- * @brief Catch-all overload
- * 
- * @tparam ValueT 
- * @param ... 
- * @return false 
- */
 template <class ValueT>
-bool is_negative_integral(...) { return false; }
-
-/**
- * @brief Overload for unsigned type
- * 
- * @tparam ValueT 
- * @tparam if_unsigned<ValueT> will be true only if Value t is unsigned
- * @param value_str the string to parse
- * @return true is the string parse to a signed value AND is negative
- * @return false  otherwise
- */
-// template <class ValueT, class Rng,  class = if_unsigned<ValueT>>
-// bool is_negative_integral(Rng&& value_str)
-template <class ValueT,  class Rng, CONCEPT_REQUIRES_(Range<Rng>()), class = if_unsigned<ValueT>>
-bool is_negative_integral(Rng&& value_str)
-{
-    typename std::make_signed<ValueT>::type n;
-    std::stringstream ststr(std::string(value_str.begin(),value_str.end()));
-    return (ststr >> n) && n < 0;
-}
-//// End of SFINAE/enable_if Trick
+bool is_negative_integral(const std::string& value_str) {
+    if constexpr (std::is_unsigned_v<ValueT>){
+        std::make_signed_t<ValueT> n;
+        std::stringstream ststr(value_str);
+        return (ststr >> n) && n < 0;
+    } else return false;
+}   
 
 /**
  * @brief Simple parsing function, using provided std::stringstream parser, should cover all base types
@@ -145,16 +112,15 @@ bool is_negative_integral(Rng&& value_str)
  * @param value_str original string
  * @return auto 
  */
-// template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>()) >
-// auto simple_parse(Rng&& value_str)
 template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
 auto simple_parse(Rng&& value_str)
 {
-    std::stringstream ststr(std::string(value_str.begin(),value_str.end()));
+    const std::string& str_proxy{begin(value_str),end(value_str)}; 
+    std::stringstream ststr(str_proxy);
 
     ValueT n;
 
-    if (!is_negative_integral<ValueT>(std::forward<Rng>(value_str)) // check for positive if unsigned type
+    if (!is_negative_integral<ValueT>(str_proxy) // check for positive if unsigned type
         && ststr >> n  // parse and return true if parsed
         && ststr.eof()) // no residual (ex: parse 3.5 into 3)
     { // successful
@@ -224,9 +190,8 @@ enum FileAndArgsErrorsT
 };
 
 const std::regex line_re{R"#([^\r\n]+)#"};
-const std::string& _empty{""};
-typedef typename iterator_t<decltype(_empty | view::tokenize(std::regex()))>::value_type sub_match_char;
-typedef expected<std::pairdecltype(_empty | view::tokenize(std::regex())),FileAndArgsErrorsT> expected_args;
+// typedef typename iterator_t<decltype(_empty | view::tokenize(std::regex()))>::value_type sub_match_char;
+typedef expected<std::vector<std::ssub_match>,FileAndArgsErrorsT> expected_args;
 
 /**
  * @brief 
