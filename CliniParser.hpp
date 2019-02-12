@@ -209,8 +209,7 @@ auto get_and_split_file(std::string filename)
             return expected_args::error(FileAndArgsErrorsT::fileioerror);
         else {
             const auto& res = fstr
-                | view::tokenize(line_re)
-                | view::move;
+                | view::tokenize(line_re);
             return expected_args::success(res);      
         }
     } else 
