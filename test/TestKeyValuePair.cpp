@@ -10,8 +10,8 @@ TEST_CASE( "Key/Value splitting") {
     std::string txt{"truc=machin"};
     const auto& res = split_keyvalue_pair(txt);
     REQUIRE( res.is_valid() );
-    REQUIRE( (res.get().first)->str()  == "truc"s );
-    REQUIRE( (res.get().second)->str()  == "machin"s );
+    REQUIRE( res.get().first.str()  == "truc"s );
+    REQUIRE( res.get().second.str()  == "machin"s );
     std::string txt2{"=trucmachin"};
     std::string txt3{"trucmachin="};
     REQUIRE( !split_keyvalue_pair(txt2).is_valid() );
@@ -19,12 +19,12 @@ TEST_CASE( "Key/Value splitting") {
 
     std::string txt4{"truc=machin=bidule=35"};
     const auto& res2 = split_keyvalue_pair(txt4);
-    REQUIRE( distance(begin(txt4),(res2.get().second)->first)  == 5 );
+    REQUIRE( distance(begin(txt4),res2.get().second.first)  == 5 );
     // const auto& res3 = split_keyvalue_pair(iterator_range(std::get<1>(res2.get())->first,std::get<1>(res2.get())->second));
     const auto& res3 = split_keyvalue_pair(res2.get().second);
-    REQUIRE( distance(begin(txt4),(res3.get().second)->first)  == 12 );
+    REQUIRE( distance(begin(txt4),res3.get().second.first)  == 12 );
     const auto& res4 = split_keyvalue_pair(res3.get().second);
-    REQUIRE( distance(begin(txt4),(res4.get().second)->first)  == 19 );
+    REQUIRE( distance(begin(txt4),res4.get().second.first)  == 19 );
 }
 
 TEST_CASE( "Various single value parsing") {
@@ -47,11 +47,17 @@ TEST_CASE( "Vector parsing") {
 }
 
 TEST_CASE( "file reading" ) {
-    const auto& res = get_and_split_file("test-file.ini");
-    REQUIRE( res.is_valid() );
-    const auto& vecres = res.get() | to_vector;
+    const auto& res_str = get_file("test-file.ini");
+    REQUIRE( res_str.is_valid() );
+    const auto& vecres_rng = split_token(res_str.get(), line_re);
+    REQUIRE( vecres_rng.is_valid() );
+    const auto& vecres = vecres_rng.get();
     REQUIRE( vecres[0].str() == "truc=machin"s );
     REQUIRE( vecres[1].str() == "bidule=2"s );
     REQUIRE( vecres[2].str() == "blah=4,5,6"s );
 
+    const auto& pairvec = split_keyvalue_pair(vecres[2]);
+    REQUIRE( pairvec.is_valid() );
+    REQUIRE( distance(begin(res_str.get()),pairvec.get().second.first) == 26 );
+    REQUIRE( vector_parse<size_t>(pairvec.get().second).get() == std::vector<size_t>{4,5,6} );
 }

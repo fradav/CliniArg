@@ -50,50 +50,31 @@ typedef std::pair<size_t,ParsingErrorsT> ParsingErrorWithPositionT;
  */
 const std::regex keyvalue_re(R"#(^([^=]+)=(.+)$)#");
 
-/**
- * @brief expected type for key/value pair
- * 
- * Note : first type of expected template parameter is payload
- * second is the error.
- */
-template <class Rng>
-using expected_keyvalue_pair = 
-    expected<std::pair<Rng,Rng>, // Payload
-                ParsingErrorsT>; // Eventual error
+
+template <class BidirIt>
+using expected_keyvalue_pair = expected<std::pair<std::sub_match<BidirIt>,std::sub_match<BidirIt>>, // Payload
+                 ParsingErrorsT>; // Eventual error
 
 
-template <class Rng>
-using is_lvalueref_noarray = 
-    std::enable_if_t<
-        std::is_lvalue_reference_v<Rng> && 
-        !std::is_array_v<std::remove_reference_t<Rng>>>;
-
-/**
- * @brief KeyValue split function 
- * 
- * @param keyvalue_str the key/value string
- * @return expected_keyvalue_pair
- */
-// template <class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
-// auto split_keyvalue_pair(Rng&& keyvalue_str)
-// template <class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
 template <class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
-auto split_keyvalue_pair(Rng&& keyvalue_str)
+const auto split_keyvalue_pair(Rng&& keyvalue_str)
 {
     const auto& res = keyvalue_str | view::tokenize(keyvalue_re,{1,2});
-    typedef iterator_t<decltype(res)> ref_t;
+    typedef typename range_value_type_t<decltype(res)>::iterator sub_match_it; 
     if (distance(res) == 2)
     {                     // successful parsing
-        return expected_keyvalue_pair<ref_t>::success(begin(res),next(begin(res),1));
+        return expected_keyvalue_pair<sub_match_it>::success(*begin(res),*next(begin(res)));
     }
     else
     { // Failed parsing
-        return expected_keyvalue_pair<ref_t>::error(ParsingErrorsT::keyvaluenotparsed);
+        return expected_keyvalue_pair<sub_match_it>::error(ParsingErrorsT::keyvaluenotparsed);
     }
 }
-template <class Bidir>
-auto split_keyvalue_pair(const std::regex_token_iterator<Bidir> t) {
-    return split_keyvalue_pair(iterator_range(t->first,t->second));
+
+
+template <class BidirIt>
+const auto split_keyvalue_pair(const std::sub_match<BidirIt>& t) {
+    return split_keyvalue_pair(iterator_range(t.first,t.second));
 }
 
 template <class ValueT>
@@ -113,7 +94,7 @@ bool is_negative_integral(const std::string& value_str) {
  * @return auto 
  */
 template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
-auto simple_parse(Rng&& value_str)
+const auto simple_parse(Rng&& value_str)
 {
     const std::string& str_proxy{begin(value_str),end(value_str)}; 
     std::stringstream ststr(str_proxy);
@@ -132,6 +113,12 @@ auto simple_parse(Rng&& value_str)
     }
 }
 
+template <class ValueT, class BidirIt>
+const auto simple_parse(const std::sub_match<BidirIt>& t)
+{
+    return simple_parse<ValueT>(iterator_range(t.first,t.second));
+}
+
 /**
  * @brief template expected monad for vector
  * 
@@ -140,7 +127,10 @@ auto simple_parse(Rng&& value_str)
 template <class ValueT>
 using expected_vector = expected<std::vector<ValueT>, ParsingErrorsT>;
 
+template <class BidirIt>
+using sub_match_range_it = iterator_range<typename std::sub_match<BidirIt>::iterator>;
 
+const std::regex vector_re{R"#([^,]+)#"};
 /**
  * @brief Apply simple_parse on vector_parse
  * 
@@ -149,12 +139,14 @@ using expected_vector = expected<std::vector<ValueT>, ParsingErrorsT>;
  * @return expected_vector<ValueT>
  */
 template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
-auto vector_parse(Rng&& value_str)
+const auto vector_parse(Rng&& value_str)
 {
     // auto res = value_str | vector_split(',') | view::transform(simple_parse<ValueT>) | to_vector;
-    auto res = value_str 
-        | view::split(',') 
-        | view::transform(simple_parse<ValueT,Rng>) ;
+    const auto& res_token = value_str
+        | view::tokenize(vector_re);
+    typedef typename range_value_type_t<decltype(res_token)>::iterator sub_range_it; 
+    const auto& res = res_token
+        | view::transform(simple_parse<ValueT, sub_range_it>);
     if (distance(res) > 0)
     {
         bool parsed = accumulate(
@@ -163,7 +155,7 @@ auto vector_parse(Rng&& value_str)
                 std::logical_and());
         if (parsed)
         {
-            auto vres = res 
+            const auto& vres = res 
                 | view::transform([](auto&& e) { return e.get(); }) 
                 | to_vector;
             return expected_vector<ValueT>::success(std::move(vres));
@@ -177,6 +169,10 @@ auto vector_parse(Rng&& value_str)
     }
 }
 
+template <class ValueT, class BidirIt>
+const auto vector_parse(const std::sub_match<BidirIt>& t) {
+    return vector_parse<ValueT>(iterator_range(t.first,t.second));
+}
 
 /**
  * @brief Various error related to file reading, kept in one enum
@@ -186,12 +182,25 @@ enum FileAndArgsErrorsT
 {
     filenotopened,
     fileioerror,
-    argerror
+    argerror,
+    empty
 };
 
 const std::regex line_re{R"#([^\r\n]+)#"};
-// typedef typename iterator_t<decltype(_empty | view::tokenize(std::regex()))>::value_type sub_match_char;
-typedef expected<std::vector<std::ssub_match>,FileAndArgsErrorsT> expected_args;
+
+const auto get_file(std::string filename)
+{
+    std::ifstream file_str(filename);
+    if (file_str) {
+        file_str >> std::noskipws;
+        const std::string& fstr{std::istream_iterator<char>{file_str}, {}};
+        if (file_str.bad()) 
+            return expected<std::string,FileAndArgsErrorsT>::error(FileAndArgsErrorsT::fileioerror);
+        else
+            return expected<std::string,FileAndArgsErrorsT>::success(fstr);
+    } else
+        return expected<std::string,FileAndArgsErrorsT>::error(FileAndArgsErrorsT::filenotopened);
+}
 
 /**
  * @brief 
@@ -199,19 +208,17 @@ typedef expected<std::vector<std::ssub_match>,FileAndArgsErrorsT> expected_args;
  * @param filename 
  * @return auto 
  */
-auto get_and_split_file(std::string filename)
+template <class BidirIt>
+using expected_args = expected<std::vector<std::sub_match<BidirIt>>,FileAndArgsErrorsT> ;
+
+template<class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
+const auto split_token(Rng&& str, const std::regex& re)
 {
-    std::ifstream file_str(filename);
-    if (file_str) {
-        file_str >> std::noskipws;
-        const std::string& fstr{std::istream_iterator<char>{file_str}, {}};
-        if (file_str.bad()) 
-            return expected_args::error(FileAndArgsErrorsT::fileioerror);
-        else {
-            const auto& res = fstr
-                | view::tokenize(line_re);
-            return expected_args::success(res);      
-        }
-    } else 
-        return expected_args::error(FileAndArgsErrorsT::filenotopened);
+    const auto& res = str
+                | view::tokenize(re);
+    typedef typename range_value_type_t<decltype(res)>::iterator sub_match_it; 
+    if (distance(res) > 0)
+        return expected_args<sub_match_it>::success(res);  
+    else
+        return expected_args<sub_match_it>::error(FileAndArgsErrorsT::empty);
 }
