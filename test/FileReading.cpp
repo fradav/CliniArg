@@ -17,7 +17,7 @@ TEST_CASE( "File reading" ) {
 
     const auto& pairvec = split_keyvalue_pair(vecres[2]);
     REQUIRE( pairvec.is_valid() );
-    REQUIRE( distance(begin(res_str.get()),pairvec.get().second.first) == 26 );
+    REQUIRE( distance(begin(res_str.get()),pairvec.get().second.first) == 71 );
     REQUIRE( vector_parse<size_t>(pairvec.get().second).get() == std::vector<size_t>{4,5,6} );
 }
 

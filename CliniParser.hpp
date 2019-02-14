@@ -180,7 +180,7 @@ enum FileAndArgsErrorsT
     empty
 };
 
-const std::regex fileline_re{R"#([^\r\n]+)#"};
+const std::regex fileline_re{R"/([^\r\n]+)/"};
 const std::regex commandline_re{R"#(\S+)#"};
 
 const auto get_file(std::string filename)
@@ -210,7 +210,9 @@ template<class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
 const auto split_token(Rng&& str, const std::regex& re)
 {
     const auto& res = str
-                | view::tokenize(re);
+                | view::tokenize(re)
+                | view::remove_if([](auto&& t){ return *(t.first) == '#' || *(t.first) == '%'; })
+                | to_vector;
     typedef typename range_value_type_t<decltype(res)>::iterator sub_match_it; 
     if (distance(res) > 0)
         return expected_args<sub_match_it>::success(res);  
