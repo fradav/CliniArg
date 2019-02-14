@@ -23,12 +23,6 @@
 using namespace ranges;
 
 
-// template <typename t>
-// using range_reference_t = decltype(*std::begin(std::declval<t &>()));
-
-// template <typename t>
-// using iterator_t = decltype(std::begin(std::declval<t &>()));
-
 /**
  * @brief Various error related to parsing, kept in one enum
  * 
@@ -186,7 +180,8 @@ enum FileAndArgsErrorsT
     empty
 };
 
-const std::regex line_re{R"#([^\r\n]+)#"};
+const std::regex fileline_re{R"#([^\r\n]+)#"};
+const std::regex commandline_re{R"#(\S+)#"};
 
 const auto get_file(std::string filename)
 {

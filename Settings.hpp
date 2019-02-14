@@ -32,13 +32,13 @@ std::map<std::string,ParamT> MapStringToParam {
 };
 
 /**
- * @brief Properties contains the actual parameters
+ * @brief Properties contains the actual parameters used by programs
  * 
  * 
  */
 struct Properties {
     size_t oneint;
-    std::vector<float> onevectflot;
+    std::vector<float> onevecfloat;
     std::string onestring;
 };
 
