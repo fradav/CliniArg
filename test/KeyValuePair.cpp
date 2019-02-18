@@ -10,8 +10,8 @@ TEST_CASE( "Key/Value splitting") {
     std::string txt{"truc=machin"};
     const auto& res = split_keyvalue_pair(txt);
     REQUIRE( res.is_valid() );
-    REQUIRE( res.get().first.str()  == "truc"s );
-    REQUIRE( res.get().second.str()  == "machin"s );
+    REQUIRE( std::string{res.get().first}  == "truc"s );
+    REQUIRE( std::string{res.get().second}  == "machin"s );
     std::string txt2{"=trucmachin"};
     std::string txt3{"trucmachin="};
     REQUIRE( !split_keyvalue_pair(txt2).is_valid() );
@@ -19,11 +19,11 @@ TEST_CASE( "Key/Value splitting") {
 
     std::string txt4{"truc=machin=bidule=35"};
     const auto& res2 = split_keyvalue_pair(txt4);
-    REQUIRE( distance(begin(txt4),res2.get().second.first)  == 5 );
+    REQUIRE( distance(begin(txt4),begin(res2.get().second))  == 5 );
     // const auto& res3 = split_keyvalue_pair(iterator_range(std::get<1>(res2.get())->first,std::get<1>(res2.get())->second));
     const auto& res3 = split_keyvalue_pair(res2.get().second);
-    REQUIRE( distance(begin(txt4),res3.get().second.first)  == 12 );
+    REQUIRE( distance(begin(txt4),begin(res3.get().second))  == 12 );
     const auto& res4 = split_keyvalue_pair(res3.get().second);
-    REQUIRE( distance(begin(txt4),res4.get().second.first)  == 19 );
+    REQUIRE( distance(begin(txt4),begin(res4.get().second))  == 19 );
 }
 
