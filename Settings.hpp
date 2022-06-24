@@ -8,6 +8,8 @@
  * @copyright Copyright (c) 2019
  * 
  */
+#pragma once
+
 #include <vector>
 #include <map>
 

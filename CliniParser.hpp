@@ -9,6 +9,7 @@
  * 
  */
 #include <regex>
+#include <fstream>
 #include <sstream>
 #include <iterator>
 #include <type_traits>
@@ -48,23 +49,24 @@ template <class Submatch>
 using BidirItSubMatch = typename std::remove_reference_t<Submatch>::iterator;
 
 template <class RangeOfSubmatch>
-using BidirItFromRange = typename range_value_type_t<RangeOfSubmatch>::iterator;
+using BidirItFromRange = typename range_value_t<RangeOfSubmatch>::iterator;
 
 const auto& SubMatch2Range = [](auto&& t){ 
-            return iterator_range<BidirItSubMatch<decltype(t)>>(t); 
+            // return iterator_range<BidirItSubMatch<decltype(t)>>(t); 
+            return subrange(t.first,t.second); 
         };
 
 template <class Rng>
-using expected_keyvalue_pair = expected<std::pair<range_value_type_t<Rng>,range_value_type_t<Rng>>, // Payload
+using expected_keyvalue_pair = expected<std::pair<range_value_t<Rng>,range_value_t<Rng>>, // Payload
                  ParsingErrorsT>; // Eventual error
 
-
-template <class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
+CPP_template(class Rng)
+    (requires range<Rng>)
 const auto split_keyvalue_pair(Rng&& keyvalue_str)
 {
     const auto& res = keyvalue_str 
-        | view::tokenize(keyvalue_re,{1,2})
-        | view::transform(SubMatch2Range);
+        | views::tokenize(keyvalue_re,{1,2})
+        | views::transform(SubMatch2Range);
     if (distance(res) == 2)
     {                     // successful parsing
         return expected_keyvalue_pair<decltype(res)>::success(*begin(res),*next(begin(res)));
@@ -97,7 +99,9 @@ bool is_negative_integral(const std::string& value_str) {
  * @param value_str original string
  * @return auto 
  */
-template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
+
+CPP_template(class ValueT, class Rng)
+    (requires range<Rng>)
 const auto simple_parse(Rng&& value_str)
 {
     const std::string& str_proxy{begin(value_str),end(value_str)}; 
@@ -142,26 +146,27 @@ const std::regex vector_re{R"#([^,]+)#"};
  * @param value_str 
  * @return expected_vector<ValueT>
  */
-template <class ValueT, class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
+CPP_template(class ValueT, class Rng)
+    (requires range<Rng>)
 const auto vector_parse(Rng&& value_str)
 {
-    // auto res = value_str | vector_split(',') | view::transform(simple_parse<ValueT>) | to_vector;
+    // auto res = value_str | vector_split(',') | views::transform(simple_parse<ValueT>) | to_vector;
     const auto& res_token = value_str
-        | view::tokenize(vector_re)
-        | view::transform(SubMatch2Range);
-    typedef range_value_type_t<decltype(res_token)> sub_range_it; 
+        | views::tokenize(vector_re)
+        | views::transform(SubMatch2Range);
+    typedef range_value_t<decltype(res_token)> sub_range_it; 
     const auto& res = res_token
-        | view::transform(simple_parse<ValueT, sub_range_it>);
+        | views::transform(simple_parse<ValueT, sub_range_it>);
     if (distance(res) > 0)
     {
         bool parsed = accumulate(
-                res | view::transform([](auto&& e) { return e.is_valid(); }), 
+                res | views::transform([](auto&& e) { return e.is_valid(); }), 
                 true,
                 std::logical_and());
         if (parsed)
         {
             const auto& vres = res 
-                | view::transform([](auto&& e) { return e.get(); }) 
+                | views::transform([](auto&& e) { return e.get(); }) 
                 | to_vector;
             return expected_vector<ValueT>::success(std::move(vres));
         } else {
@@ -215,15 +220,16 @@ const auto get_file(std::string filename)
  * @return auto 
  */
 template <class Rng>
-using expected_args = expected<std::vector<range_value_type_t<Rng>>,FileAndArgsErrorsT> ;
+using expected_args = expected<std::vector<range_value_t<Rng>>,FileAndArgsErrorsT> ;
 
-template<class Rng, CONCEPT_REQUIRES_(Range<Rng>())>
+CPP_template(class Rng)
+    (requires range<Rng>)
 const auto split_token(Rng&& str, const std::regex& re)
 {
     const auto& res = str
-                | view::tokenize(re)
-                | view::remove_if([](auto&& t){ return *(t.first) == '#' || *(t.first) == '%'; })
-                | view::transform(SubMatch2Range)
+                | views::tokenize(re)
+                | views::remove_if([](auto&& t){ return *(t.first) == '#' || *(t.first) == '%'; })
+                | views::transform(SubMatch2Range)
                 | to_vector;
     if (distance(res) > 0)
         return expected_args<decltype(res)>::success(res);  
