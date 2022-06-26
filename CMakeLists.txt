@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 include(pmm.cmake)
-project(CLI-proto VERSION 0.1.0 LANGUAGES CXX)
+project(CLI-proto VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -20,6 +20,8 @@ include(Catch)
 
 include(CTest)
 enable_testing()
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 file(GLOB test_files test/*.cpp)
 foreach(filename ${test_files})

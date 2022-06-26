@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "../CliniParser.hpp"
-#include <range/v3/all.hpp>
+#include "CliniParser.hpp"
 
 using namespace std::literals;
 

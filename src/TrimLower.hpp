@@ -18,14 +18,14 @@ bool to_trim(char c)
 
 std::string trim_spaces_underscores(std::string s)
 {
-    s |= action::remove_if(::detail::to_trim);
+    s |= actions::remove_if(::detail::to_trim);
     return s;
 }
 
 std::string str_tolower(std::string s)
 {
     // https://en.cppreference.com/w/cpp/string/byte/tolower
-    s |= action::transform([](auto c){ return std::tolower(c,std::locale()); }); 
+    s |= actions::transform([](auto c){ return std::tolower(c,std::locale()); }); 
     return s;
 }
 

@@ -1,9 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
-#include "../Singleton.hpp"
-#include "../Settings.hpp"
+#include "Singleton.hpp"
+#include "./Settings.hpp"
 
 using namespace std::literals;
-
 
 TEST_CASE( "Singleton instance" ) {
     {

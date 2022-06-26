@@ -8,17 +8,12 @@
  * @copyright Copyright (c) 2019
  * 
  */
+#pragma once
 #include <regex>
 #include <fstream>
 #include <sstream>
-#include <iterator>
-#include <type_traits>
-#include <string_view>
-#include <functional>
-#include <ios>
 
 #include "Expected.hpp"
-#include "Settings.hpp"
 #include <range/v3/all.hpp>
 
 using namespace ranges;
@@ -45,17 +40,6 @@ typedef std::pair<size_t,ParsingErrorsT> ParsingErrorWithPositionT;
  */
 const std::regex keyvalue_re(R"#(^([^=]+)=(.+)$)#");
 
-template <class Submatch>
-using BidirItSubMatch = typename std::remove_reference_t<Submatch>::iterator;
-
-template <class RangeOfSubmatch>
-using BidirItFromRange = typename range_value_t<RangeOfSubmatch>::iterator;
-
-const auto& SubMatch2Range = [](auto&& t){ 
-            // return iterator_range<BidirItSubMatch<decltype(t)>>(t); 
-            return subrange(t.first,t.second); 
-        };
-
 template <class Rng>
 using expected_keyvalue_pair = expected<std::pair<range_value_t<Rng>,range_value_t<Rng>>, // Payload
                  ParsingErrorsT>; // Eventual error
@@ -66,7 +50,11 @@ const auto split_keyvalue_pair(Rng&& keyvalue_str)
 {
     const auto& res = keyvalue_str 
         | views::tokenize(keyvalue_re,{1,2})
-        | views::transform(SubMatch2Range);
+        | views::move
+        | views::transform([&keyvalue_str](auto&& t){
+            return subrange(t.first,t.second);
+        });
+
     if (distance(res) == 2)
     {                     // successful parsing
         return expected_keyvalue_pair<decltype(res)>::success(*begin(res),*next(begin(res)));
@@ -76,12 +64,6 @@ const auto split_keyvalue_pair(Rng&& keyvalue_str)
         return expected_keyvalue_pair<decltype(res)>::error(ParsingErrorsT::keyvaluenotparsed);
     }
 }
-
-
-// template <class BidirIt>
-// const auto split_keyvalue_pair(const std::sub_match<BidirIt>& t) {
-//     return split_keyvalue_pair(iterator_range(t.first,t.second));
-// }
 
 template <class ValueT>
 bool is_negative_integral(const std::string& value_str) {
@@ -121,11 +103,6 @@ const auto simple_parse(Rng&& value_str)
     }
 }
 
-// template <class ValueT, class BidirIt>
-// const auto simple_parse(const std::sub_match<BidirIt>& t)
-// {
-//     return simple_parse<ValueT>(iterator_range(t.first,t.second));
-// }
 
 /**
  * @brief template expected monad for vector
@@ -134,9 +111,6 @@ const auto simple_parse(Rng&& value_str)
  */
 template <class ValueT>
 using expected_vector = expected<std::vector<ValueT>, ParsingErrorsT>;
-
-template <class BidirIt>
-using sub_match_range_it = iterator_range<typename std::sub_match<BidirIt>::iterator>;
 
 const std::regex vector_re{R"#([^,]+)#"};
 /**
@@ -150,10 +124,12 @@ CPP_template(class ValueT, class Rng)
     (requires range<Rng>)
 const auto vector_parse(Rng&& value_str)
 {
-    // auto res = value_str | vector_split(',') | views::transform(simple_parse<ValueT>) | to_vector;
     const auto& res_token = value_str
         | views::tokenize(vector_re)
-        | views::transform(SubMatch2Range);
+        | views::move
+        | views::transform([&value_str](auto&& t){
+            return subrange(t.first,t.second);
+        });
     typedef range_value_t<decltype(res_token)> sub_range_it; 
     const auto& res = res_token
         | views::transform(simple_parse<ValueT, sub_range_it>);
@@ -178,11 +154,6 @@ const auto vector_parse(Rng&& value_str)
        return expected_vector<ValueT>::error(ParsingErrorsT::emptyvector); 
     }
 }
-
-// template <class ValueT, class BidirIt>
-// const auto vector_parse(const std::sub_match<BidirIt>& t) {
-//     return vector_parse<ValueT>(iterator_range(t.first,t.second));
-// }
 
 /**
  * @brief Various error related to file reading, kept in one enum
@@ -229,7 +200,10 @@ const auto split_token(Rng&& str, const std::regex& re)
     const auto& res = str
                 | views::tokenize(re)
                 | views::remove_if([](auto&& t){ return *(t.first) == '#' || *(t.first) == '%'; })
-                | views::transform(SubMatch2Range)
+                | views::move
+                | views::transform([&str](auto&& t){
+                    return subrange(t.first,t.second);
+                })
                 | to_vector;
     if (distance(res) > 0)
         return expected_args<decltype(res)>::success(res);  
