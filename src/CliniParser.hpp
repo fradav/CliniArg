@@ -51,7 +51,7 @@ const auto split_keyvalue_pair(Rng&& keyvalue_str)
     const auto& res = keyvalue_str 
         | views::tokenize(keyvalue_re,{1,2})
         | views::move
-        | views::transform([&keyvalue_str](auto&& t){
+        | views::transform([](auto&& t){
             return subrange(t.first,t.second);
         });
 
@@ -126,8 +126,7 @@ const auto vector_parse(Rng&& value_str)
 {
     const auto& res_token = value_str
         | views::tokenize(vector_re)
-        | views::move
-        | views::transform([&value_str](auto&& t){
+        | views::transform([](auto&& t){
             return subrange(t.first,t.second);
         });
     typedef range_value_t<decltype(res_token)> sub_range_it; 
@@ -200,8 +199,7 @@ const auto split_token(Rng&& str, const std::regex& re)
     const auto& res = str
                 | views::tokenize(re)
                 | views::remove_if([](auto&& t){ return *(t.first) == '#' || *(t.first) == '%'; })
-                | views::move
-                | views::transform([&str](auto&& t){
+                | views::transform([](auto&& t){
                     return subrange(t.first,t.second);
                 })
                 | to_vector;
