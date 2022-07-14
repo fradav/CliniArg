@@ -2,7 +2,7 @@
  * @file CliniParser.hpp
  * @author François-David Collin <Francois-David.Collin@umontpellier.fr>
  * @brief Basic parsing functions
- * @version 0.1
+ * @version 0.2
  * @date 2019-01-29
  * 
  * @copyright Copyright (c) 2019
@@ -32,7 +32,12 @@ enum ParsingErrorsT
     vectorvaluenotparsed
 };
 
-typedef std::pair<size_t,ParsingErrorsT> ParsingErrorWithPositionT;
+/**
+ * @brief Error payload with relative position
+ * 
+ */
+template <range Rng>
+using ParsingErrorWithPositionT = const std::pair<iterator_t<Rng>,ParsingErrorsT>;
 
 /**
  * @brief Regex for key value split
@@ -40,12 +45,23 @@ typedef std::pair<size_t,ParsingErrorsT> ParsingErrorWithPositionT;
  */
 const std::regex keyvalue_re(R"#(^([^=]+)=(.+)$)#");
 
-template <class Rng>
+/**
+ * @brief Expected key-value pair
+ * 
+ * @tparam Rng Range container type 
+ */
+template <range Rng>
 using expected_keyvalue_pair = expected<std::pair<range_value_t<Rng>,range_value_t<Rng>>, // Payload
-                 ParsingErrorsT>; // Eventual error
+                 ParsingErrorWithPositionT<Rng>>; // Eventual error
 
-CPP_template(class Rng)
-    (requires range<Rng>)
+/**
+ * @brief Split a "foo=bar" char range into left and right subranges "foo" and "bar"
+ * 
+ * @tparam Rng Hange container type
+ * @param keyvalue_str char range to split
+ * @return const auto return a pair of subrange
+ */
+template<range Rng>
 const auto split_keyvalue_pair(Rng&& keyvalue_str)
 {
     const auto& res = keyvalue_str 
@@ -61,10 +77,18 @@ const auto split_keyvalue_pair(Rng&& keyvalue_str)
     }
     else
     { // Failed parsing
-        return expected_keyvalue_pair<decltype(res)>::error(ParsingErrorsT::keyvaluenotparsed);
+        return expected_keyvalue_pair<decltype(res)>::error(std::make_pair(*begin(res),ParsingErrorsT::keyvaluenotparsed));
     }
 }
 
+/**
+ * @brief Utility function to parse a negative integral
+ * 
+ * @tparam ValueT 
+ * @param value_str 
+ * @return true a negative integral has been parsed
+ * @return false a negative integral has not been parsed
+ */
 template <class ValueT>
 bool is_negative_integral(const std::string& value_str) {
     if constexpr (std::is_unsigned_v<ValueT>){
@@ -78,12 +102,11 @@ bool is_negative_integral(const std::string& value_str) {
  * @brief Simple parsing function, using provided std::stringstream parser, should cover all base types
  * 
  * @tparam ValueT type to parse
+ * @tparam Rng Range container
  * @param value_str original string
- * @return auto 
+ * @return const auto 
  */
-
-CPP_template(class ValueT, class Rng)
-    (requires range<Rng>)
+template<class ValueT, range Rng>
 const auto simple_parse(Rng&& value_str)
 {
     const std::string& str_proxy{begin(value_str),end(value_str)}; 
@@ -120,8 +143,7 @@ const std::regex vector_re{R"#([^,]+)#"};
  * @param value_str 
  * @return expected_vector<ValueT>
  */
-CPP_template(class ValueT, class Rng)
-    (requires range<Rng>)
+template<class ValueT, range Rng>
 const auto vector_parse(Rng&& value_str)
 {
     const auto& res_token = value_str
@@ -166,9 +188,23 @@ enum FileAndArgsErrorsT
     empty
 };
 
+/**
+ * @brief regex for splitting lines in file
+ * 
+ */
 const std::regex fileline_re{R"/([^\r\n]+)/"};
+/**
+ * @brief regex for splitting command lines arguments 
+ * 
+ */
 const std::regex commandline_re{R"#(\S+)#"};
 
+/**
+ * @brief Get the file object
+ * 
+ * @param filename 
+ * @return const auto 
+ */
 const auto get_file(std::string filename)
 {
     std::ifstream file_str(filename);
@@ -192,8 +228,15 @@ const auto get_file(std::string filename)
 template <class Rng>
 using expected_args = expected<std::vector<range_value_t<Rng>>,FileAndArgsErrorsT> ;
 
-CPP_template(class Rng)
-    (requires range<Rng>)
+/**
+ * @brief Split a char range into vector of submatches (as subranges)
+ * 
+ * @tparam Rng 
+ * @param str 
+ * @param re 
+ * @return const auto 
+ */
+template<range Rng>
 const auto split_token(Rng&& str, const std::regex& re)
 {
     const auto& res = str

@@ -1,6 +1,11 @@
 #pragma once
 
-template<typename T>
+/**
+ * @brief Singleton class
+ * 
+ * @tparam T 
+ */
+template<class T>
 class Singleton {
 public:
     static T& instance();
@@ -12,8 +17,13 @@ protected:
     Singleton() {}
 };
 
-#include <memory>
-template<typename T>
+/**
+ * @brief return the singleton instance
+ * 
+ * @tparam T 
+ * @return T& 
+ */
+template<class T>
 T& Singleton<T>::instance()
 {
     static T instance{};
